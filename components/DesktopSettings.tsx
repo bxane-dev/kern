@@ -41,18 +41,19 @@ export function DesktopSettings() {
   );
 
   if (!bridge) return null;
+  const desktopBridge = bridge;
 
   async function saveAndRestart() {
     setSaving(true);
     setMessage("");
 
     try {
-      const updated = await bridge.saveConfig({ values, secrets, clearSecrets });
+      const updated = await desktopBridge.saveConfig({ values, secrets, clearSecrets });
       setConfig(updated);
       setSecrets({});
       setClearSecrets([]);
       setMessage("Saved. Restarting KERN local services…");
-      await bridge.restartServer();
+      await desktopBridge.restartServer();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save desktop settings.");
       setSaving(false);
@@ -146,7 +147,7 @@ export function DesktopSettings() {
 
       <div className="desktop-config-footer">
         <div>
-          <button className="button" type="button" onClick={() => void bridge.openConfigLocation()}>
+          <button className="button" type="button" onClick={() => void desktopBridge.openConfigLocation()}>
             <FolderOpen size={15} />Config location
           </button>
           <span>{changedSecretCount ? `${changedSecretCount} secret change(s)` : config?.configPath}</span>
