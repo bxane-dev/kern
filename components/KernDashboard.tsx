@@ -14,7 +14,6 @@ import {
   ExternalLink,
   Gauge,
   GitBranch,
-  Github,
   GitPullRequest,
   LayoutDashboard,
   ListTodo,
@@ -57,7 +56,7 @@ type Todo = {
 const nav = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "projects", label: "Projects", icon: Code2 },
-  { id: "github", label: "GitHub", icon: Github },
+  { id: "github", label: "GitHub", icon: GitBranch },
   { id: "deployments", label: "Deployments", icon: Rocket },
   { id: "logs", label: "Logs", icon: Terminal },
   { id: "uptime", label: "Uptime", icon: Gauge },
@@ -496,7 +495,7 @@ export function KernDashboard() {
               <Panel title="GitHub snapshot" subtitle={data.owner}>
                 <div className="big-metric"><strong>{data.projects.length}</strong><span>repositories</span></div>
                 <div className="split-metrics"><div><strong>{data.issues.length}</strong><span>issues</span></div><div><strong>{data.pullRequests.length}</strong><span>PRs</span></div></div>
-                <a className="button wide" href={`https://github.com/${data.owner}`} target="_blank" rel="noreferrer"><Github size={15} />Open GitHub <ExternalLink size={13} /></a>
+                <a className="button wide" href={`https://github.com/${data.owner}`} target="_blank" rel="noreferrer"><GitBranch size={15} />Open GitHub <ExternalLink size={13} /></a>
               </Panel>
               <Panel title="Open issues" subtitle="Recently updated" className="span-3">
                 <div className="rows">{data.issues.slice(0, 12).map((item) => <IssueRow item={item} key={item.id} />)}</div>
