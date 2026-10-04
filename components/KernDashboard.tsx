@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { DashboardData, Deployment, GitHubItem, Monitor, Project } from "@/lib/types";
+import { ActionCenter } from "@/components/ActionCenter";
 
 type Tab =
   | "overview"
@@ -43,6 +44,7 @@ type Tab =
   | "uptime"
   | "issues"
   | "tasks"
+  | "actions"
   | "settings";
 
 type Todo = {
@@ -62,6 +64,7 @@ const nav = [
   { id: "uptime", label: "Uptime", icon: Gauge },
   { id: "issues", label: "Issues", icon: CircleDot },
   { id: "tasks", label: "Tasks", icon: ListTodo },
+  { id: "actions", label: "Actions", icon: Zap },
   { id: "settings", label: "Settings", icon: Settings },
 ] as const;
 
@@ -350,7 +353,7 @@ export function KernDashboard() {
         </div>
         <nav>
           <span className="nav-section">WORKSPACE</span>
-          {nav.slice(0, 8).map((item) => {
+          {nav.slice(0, 9).map((item) => {
             const Icon = item.icon;
             return (
               <button key={item.id} className={active === item.id ? "active" : ""} onClick={() => setActive(item.id)}>
@@ -362,7 +365,7 @@ export function KernDashboard() {
             );
           })}
           <span className="nav-section lower">SYSTEM</span>
-          {nav.slice(8).map((item) => {
+          {nav.slice(9).map((item) => {
             const Icon = item.icon;
             return (
               <button key={item.id} className={active === item.id ? "active" : ""} onClick={() => setActive(item.id)}>
@@ -578,6 +581,16 @@ export function KernDashboard() {
             </>
           ) : null}
 
+          {active === "actions" && data ? (
+            <>
+              <div className="section-intro">
+                <div><p className="eyebrow">CONTROL PLANE</p><h2>Provider actions</h2></div>
+                <span>Authenticated server-side mutations</span>
+              </div>
+              <ActionCenter data={data} onRefresh={() => void load(true)} />
+            </>
+          ) : null}
+
           {active === "settings" && data ? (
             <div className="settings-grid">
               <Panel title="Connections" subtitle="Server-side integration state">
@@ -587,6 +600,7 @@ export function KernDashboard() {
                     { name: "Vercel", on: data.integrations.vercel, detail: "VERCEL_TOKEN" },
                     { name: "Render", on: data.integrations.render, detail: "RENDER_API_KEY + RENDER_SERVICE_ID" },
                     { name: "Uptime", on: data.integrations.uptime, detail: "KERN_MONITORS" },
+                    { name: "Write actions", on: !data.writeActions.locked, detail: data.writeActions.locked ? "Set KERN_PASSWORD" : "Password protected" },
                   ].map((item) => (
                     <div key={item.name}>
                       <div><StatusDot tone={item.on ? "ok" : "neutral"} /><strong>{item.name}</strong></div>

@@ -316,6 +316,12 @@ export async function getDashboardData(): Promise<DashboardData> {
       render: Boolean(process.env.RENDER_API_KEY && process.env.RENDER_SERVICE_ID),
       uptime: monitors.length > 0,
     },
+    writeActions: {
+      locked: !Boolean(process.env.KERN_PASSWORD),
+      github: Boolean(process.env.GITHUB_TOKEN),
+      vercel: Boolean(process.env.VERCEL_TOKEN),
+      render: Boolean(process.env.RENDER_API_KEY && process.env.RENDER_SERVICE_ID),
+    },
     warnings,
   };
 }

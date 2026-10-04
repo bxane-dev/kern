@@ -79,5 +79,11 @@ export type DashboardData = {
     render: boolean;
     uptime: boolean;
   };
+  writeActions: {
+    locked: boolean;
+    github: boolean;
+    vercel: boolean;
+    render: boolean;
+  };
   warnings: string[];
 };

@@ -18,6 +18,11 @@
 - Optional password protection with an HTTP-only session cookie
 - Responsive desktop, tablet, and mobile layouts
 - 60-second live refresh
+- Protected write-action control plane
+- Create GitHub issues from KERN
+- Dispatch GitHub Actions workflows
+- Redeploy an existing Vercel deployment
+- Trigger normal or clean-cache Render deploys
 
 ## Stack
 
@@ -50,7 +55,7 @@ Open [http://localhost:3000](http://localhost:3000).
 KERN_PASSWORD=choose-a-long-password
 ```
 
-If `KERN_PASSWORD` is not set, KERN runs without a login screen. Set it for any public deployment.
+If `KERN_PASSWORD` is not set, KERN runs without a login screen in **read-only mode**. All provider mutation endpoints remain locked. Set a strong password before enabling write actions on any deployment.
 
 ### GitHub
 
@@ -59,7 +64,9 @@ GITHUB_OWNER=bxane-dev
 GITHUB_TOKEN=
 ```
 
-`GITHUB_TOKEN` is optional for public repositories, but recommended to increase API limits. Keep it server-side.
+`GITHUB_TOKEN` is optional for public read-only repositories, but recommended to increase API limits. Keep it server-side.
+
+To use KERN's GitHub write actions with a fine-grained token, grant only the repositories KERN should control and enable **Issues: Read and write** plus **Actions: Read and write**.
 
 ### Vercel
 
@@ -92,7 +99,7 @@ KERN performs server-side checks when dashboard data refreshes.
 
 ## Security
 
-Provider tokens are only read in server code and are not included in API responses. KERN's optional access password is converted to a deterministic server-side session value and stored in an HTTP-only, same-site cookie.
+Provider tokens are only read in server code and are not included in API responses. KERN's optional access password is converted to a deterministic server-side session value and stored in an HTTP-only, same-site cookie. Write endpoints also enforce same-origin requests and refuse to execute at all when `KERN_PASSWORD` is unset.
 
 For an internet-facing deployment:
 
