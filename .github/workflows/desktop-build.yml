@@ -1,0 +1,77 @@
+name: Desktop Installers
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "electron/**"
+      - "scripts/prepare-desktop.mjs"
+      - "components/DesktopSettings.tsx"
+      - "types/desktop.d.ts"
+      - "package.json"
+      - "next.config.ts"
+      - "app/api/auth/route.ts"
+      - "build/**"
+      - ".github/workflows/desktop-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install dependencies
+        run: npm install
+      - name: Build desktop server
+        run: npm run build:desktop
+      - name: Build NSIS installer
+        run: npx electron-builder --win nsis --x64 --publish never
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: KERN-Windows-Installer
+          path: |
+            dist/*.exe
+            dist/*.blockmap
+          if-no-files-found: error
+
+  linux:
+    name: Linux installers
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install dependencies
+        run: npm install
+      - name: Build desktop server
+        run: npm run build:desktop
+      - name: Build AppImage and DEB
+        run: npx electron-builder --linux AppImage deb --x64 --publish never
+      - name: Upload Linux installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: KERN-Linux-Installers
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: error

@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   response.cookies.set(KERN_COOKIE, value, {
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && process.env.KERN_DESKTOP !== "1",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
@@ -25,7 +25,7 @@ export async function DELETE() {
   response.cookies.set(KERN_COOKIE, "", {
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && process.env.KERN_DESKTOP !== "1",
     path: "/",
     maxAge: 0,
   });

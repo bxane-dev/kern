@@ -23,9 +23,15 @@
 - Dispatch GitHub Actions workflows
 - Redeploy an existing Vercel deployment
 - Trigger normal or clean-cache Render deploys
+- Native Electron desktop application
+- Windows NSIS installer
+- Linux AppImage and DEB packages
+- Desktop credential/settings manager
 
 ## Stack
 
+- Electron 44
+- electron-builder
 - Next.js 16 App Router
 - React 19
 - TypeScript
@@ -34,6 +40,39 @@
 - GitHub REST API
 - Optional Vercel REST API
 - Optional Render REST API
+
+## Desktop installers
+
+KERN can be installed as a native desktop application. The desktop bundle contains the production Next.js server, so end users do not need Node.js or npm installed.
+
+### Windows
+
+Download `KERN-Setup-<version>-x64.exe` from the **Desktop Installers** workflow artifact or a tagged GitHub Release. The assisted installer supports Start Menu/Desktop shortcuts and lets the user choose the installation directory.
+
+### Linux
+
+Two packages are built:
+
+- `KERN-<version>-x64.AppImage` — portable cross-distribution app
+- `KERN-<version>-x64.deb` — installable Debian/Ubuntu package
+
+The installed desktop app adds **Settings → Desktop configuration**, where GitHub/Vercel/Render credentials, KERN password, project IDs, and uptime monitors can be configured locally. Sensitive values use Electron `safeStorage` when OS encryption is available.
+
+### Build installers yourself
+
+```bash
+npm install
+
+# Windows
+npm run desktop:win
+
+# Linux
+npm run desktop:linux
+```
+
+Artifacts are written to `dist/`.
+
+To publish installer files as a GitHub Release, push a version tag such as `v0.2.0`.
 
 ## Run locally
 
@@ -115,6 +154,9 @@ npm run dev
 npm run typecheck
 npm run build
 npm start
+npm run desktop:dev
+npm run desktop:win
+npm run desktop:linux
 ```
 
 ## Deploy

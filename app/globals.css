@@ -384,3 +384,35 @@ a.row:hover { background: #111; }
   .action-card-head { grid-template-columns: 32px minmax(0, 1fr); }
   .action-card-head > span { display: none; }
 }
+
+
+/* Desktop application settings */
+.desktop-config-panel { margin-bottom: 10px; }
+.desktop-badge { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #303030; border-radius: 5px; background: #141414; color: #858585; padding: 5px 7px; font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.desktop-config-status { margin: 14px 16px 0; border: 1px solid #242424; background: #0b0b0b; border-radius: 8px; padding: 11px 12px; display: flex; gap: 10px; align-items: flex-start; color: #85d7a6; }
+.desktop-config-status strong { color: #bdbdbd; display: block; font-size: 10px; }
+.desktop-config-status p { color: #606060; margin: 3px 0 0; font-size: 9px; line-height: 1.45; }
+.desktop-form-grid, .desktop-secret-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px 16px 0; }
+.desktop-form-grid label, .desktop-secret-field label, .desktop-monitor-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.desktop-form-grid label > span, .desktop-secret-field label > span, .desktop-monitor-field > span { color: #606060; font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.desktop-secret-field label > span { display: flex; align-items: center; gap: 5px; }
+.desktop-form-grid input, .desktop-secret-field input, .desktop-monitor-field textarea { width: 100%; border: 1px solid #292929; background: #0a0a0a; color: #c7c7c7; border-radius: 7px; outline: 0; padding: 9px 10px; font-size: 10px; }
+.desktop-form-grid input, .desktop-secret-field input { min-height: 37px; }
+.desktop-form-grid input:focus, .desktop-secret-field input:focus, .desktop-monitor-field textarea:focus { border-color: #454545; }
+.desktop-secret-field input:disabled { opacity: .55; }
+.secret-clear { border: 0; background: transparent; color: #555; font-size: 8px; padding: 5px 0 0; cursor: pointer; text-align: left; }
+.secret-clear:hover { color: #aaa; }
+.secret-clear.active { color: #d99763; }
+.desktop-monitor-field { margin: 14px 16px 0; }
+.desktop-monitor-field textarea { resize: vertical; min-height: 70px; line-height: 1.45; }
+.desktop-config-footer { min-height: 62px; margin-top: 14px; border-top: 1px solid #1c1c1c; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.desktop-config-footer > div { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.desktop-config-footer > div > span { color: #515151; font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+.desktop-config-message { margin: -4px 16px 13px; color: #808080; font-size: 9px; }
+
+@media (max-width: 700px) {
+  .desktop-form-grid, .desktop-secret-grid { grid-template-columns: 1fr; }
+  .desktop-config-footer { align-items: stretch; flex-direction: column; }
+  .desktop-config-footer > div { flex-direction: column; align-items: stretch; }
+  .desktop-config-footer > div > span { max-width: 100%; }
+}

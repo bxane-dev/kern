@@ -34,6 +34,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { DashboardData, Deployment, GitHubItem, Monitor, Project } from "@/lib/types";
 import { ActionCenter } from "@/components/ActionCenter";
+import { DesktopSettings } from "@/components/DesktopSettings";
 
 type Tab =
   | "overview"
@@ -592,7 +593,9 @@ export function KernDashboard() {
           ) : null}
 
           {active === "settings" && data ? (
-            <div className="settings-grid">
+            <>
+              <DesktopSettings />
+              <div className="settings-grid">
               <Panel title="Connections" subtitle="Server-side integration state">
                 <div className="connection-cards">
                   {[
@@ -620,7 +623,8 @@ export function KernDashboard() {
                   <div><strong>HTTP-only session</strong><p>Set KERN_PASSWORD in production to gate the interface with a secure HTTP-only cookie.</p></div>
                 </div>
               </Panel>
-            </div>
+              </div>
+            </>
           ) : null}
         </div>
       </main>
