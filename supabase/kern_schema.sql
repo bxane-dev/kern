@@ -38,6 +38,7 @@ create table if not exists public.kern_alerts (
   fingerprint text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   resolved_at timestamptz
 );
 
@@ -65,7 +66,7 @@ create index if not exists kern_incidents_status_started_idx
 create index if not exists kern_alerts_status_created_idx
   on public.kern_alerts (status, created_at desc);
 
-create index if not exists kern_alerts_fingerprint_idx
+create unique index if not exists kern_alerts_fingerprint_idx
   on public.kern_alerts (fingerprint)
   where fingerprint is not null;
 

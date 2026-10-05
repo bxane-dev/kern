@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, session, shell } = require("electron");
+const { app, BrowserWindow, Menu, Notification, ipcMain, session, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const net = require("node:net");
@@ -192,6 +192,14 @@ async function restartServer() {
 
   return { ok: true };
 }
+
+ipcMain.handle("kern:notify", (_event, input = {}) => {
+  if (!Notification.isSupported()) return { ok: false };
+  const title = String(input.title || "KERN").slice(0, 160);
+  const body = String(input.body || "").slice(0, 500);
+  new Notification({ title, body }).show();
+  return { ok: true };
+});
 
 ipcMain.handle("kern:config:get", () => getRendererConfig());
 ipcMain.handle("kern:config:save", (_event, config) => saveRendererConfig(config));

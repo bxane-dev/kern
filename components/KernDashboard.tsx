@@ -35,6 +35,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import type { DashboardData, Deployment, GitHubItem, Monitor, Project, Todo } from "@/lib/types";
 import { ActionCenter } from "@/components/ActionCenter";
 import { DesktopSettings } from "@/components/DesktopSettings";
+import { AlertsCenter } from "@/components/AlertsCenter";
 
 type Tab =
   | "overview"
@@ -45,6 +46,7 @@ type Tab =
   | "uptime"
   | "issues"
   | "tasks"
+  | "alerts"
   | "actions"
   | "settings";
 
@@ -57,6 +59,7 @@ const nav = [
   { id: "uptime", label: "Uptime", icon: Gauge },
   { id: "issues", label: "Issues", icon: CircleDot },
   { id: "tasks", label: "Tasks", icon: ListTodo },
+  { id: "alerts", label: "Alerts", icon: AlertTriangle },
   { id: "actions", label: "Actions", icon: Zap },
   { id: "settings", label: "Settings", icon: Settings },
 ] as const;
@@ -340,6 +343,7 @@ export function KernDashboard() {
   const failedDeployments = data?.deployments.filter((item) => stateTone(item.state) === "bad").length ?? 0;
   const downMonitors = data?.monitors.filter((item) => item.status === "down").length ?? 0;
   const activeTodos = todos.filter((item) => !item.done).length;
+  const openAlerts = data?.alerts.filter((item) => item.status === "open").length ?? 0;
 
   async function addTodo() {
     const title = newTodo.trim();
@@ -467,7 +471,7 @@ export function KernDashboard() {
         </div>
         <nav>
           <span className="nav-section">WORKSPACE</span>
-          {nav.slice(0, 9).map((item) => {
+          {nav.slice(0, 10).map((item) => {
             const Icon = item.icon;
             return (
               <button key={item.id} className={active === item.id ? "active" : ""} onClick={() => setActive(item.id)}>
@@ -475,11 +479,12 @@ export function KernDashboard() {
                 {item.label}
                 {item.id === "issues" && data?.issues.length ? <em>{data.issues.length}</em> : null}
                 {item.id === "tasks" && activeTodos ? <em>{activeTodos}</em> : null}
+                {item.id === "alerts" && openAlerts ? <em>{openAlerts}</em> : null}
               </button>
             );
           })}
           <span className="nav-section lower">SYSTEM</span>
-          {nav.slice(9).map((item) => {
+          {nav.slice(10).map((item) => {
             const Icon = item.icon;
             return (
               <button key={item.id} className={active === item.id ? "active" : ""} onClick={() => setActive(item.id)}>
@@ -585,7 +590,7 @@ export function KernDashboard() {
                 </Panel>
                 <Panel title="Attention" subtitle="What needs action">
                   <div className="attention">
-                    <div><AlertTriangle size={16} /><span><strong>{failedDeployments}</strong> failed deployments</span></div>
+                    <div><AlertTriangle size={16} /><span><strong>{openAlerts}</strong> open alerts</span></div>
                     <div><CircleDot size={16} /><span><strong>{data.issues.length}</strong> open issues</span></div>
                     <div><ListTodo size={16} /><span><strong>{activeTodos}</strong> active tasks</span></div>
                     <div><Gauge size={16} /><span><strong>{downMonitors}</strong> monitors down</span></div>
@@ -697,6 +702,16 @@ export function KernDashboard() {
             </>
           ) : null}
 
+          {active === "alerts" && data ? (
+            <>
+              <div className="section-intro">
+                <div><p className="eyebrow">OPERATIONS</p><h2>Alerts & incidents</h2></div>
+                <span>Automatic detection from live state</span>
+              </div>
+              <AlertsCenter data={data} onRefresh={() => void load(true)} />
+            </>
+          ) : null}
+
           {active === "actions" && data ? (
             <>
               <div className="section-intro">
@@ -719,6 +734,7 @@ export function KernDashboard() {
                     { name: "Render", on: data.integrations.render, detail: "RENDER_API_KEY + RENDER_SERVICE_ID" },
                     { name: "Uptime", on: data.integrations.uptime, detail: "KERN_MONITORS" },
                     { name: "Database", on: data.integrations.database, detail: "SUPABASE_URL + SUPABASE_SECRET_KEY" },
+                    { name: "Alerts", on: true, detail: "Live detection + optional Supabase history" },
                     { name: "Write actions", on: !data.writeActions.locked, detail: data.writeActions.locked ? "Set KERN_PASSWORD" : "Password protected" },
                   ].map((item) => (
                     <div key={item.name}>

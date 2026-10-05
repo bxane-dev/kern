@@ -1,4 +1,5 @@
-import { persistenceConfigured } from "@/lib/persistence";
+import { persistenceAccessAllowed, persistenceConfigured, syncOperationalState } from "@/lib/persistence";
+import { deriveOperationalAlerts } from "@/lib/operations";
 import type {
   Activity,
   DashboardData,
@@ -295,11 +296,21 @@ export async function getDashboardData(): Promise<DashboardData> {
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, 30);
 
+  const alerts = deriveOperationalAlerts({ monitors, deployments });
+
   const warnings = [
     ...github.warnings,
     vercel.warning,
     render.warning,
   ].filter(Boolean) as string[];
+
+  if (persistenceConfigured() && persistenceAccessAllowed()) {
+    try {
+      await syncOperationalState(alerts);
+    } catch (error) {
+      warnings.push(`Operations history: ${error instanceof Error ? error.message : "sync failed"}`);
+    }
+  }
 
   return {
     generatedAt: new Date().toISOString(),
@@ -311,6 +322,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     logs: vercel.logs,
     monitors,
     activity,
+    alerts,
     integrations: {
       github: true,
       vercel: Boolean(process.env.VERCEL_TOKEN),

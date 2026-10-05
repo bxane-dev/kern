@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Todo } from "@/lib/types";
+import type { AlertRecord, IncidentRecord, Todo } from "@/lib/types";
 
 let cached: SupabaseClient | null = null;
 let cachedKey = "";
@@ -142,5 +142,218 @@ export async function recordAuditEvent(input: {
 
   if (error) {
     console.warn("KERN audit persistence failed:", error.message);
+  }
+}
+
+
+function mapAlert(row: any): AlertRecord {
+  return {
+    id: row.id,
+    kind: String(row.kind),
+    severity: row.severity as AlertRecord["severity"],
+    title: String(row.title),
+    body: row.body ?? null,
+    status: row.status as AlertRecord["status"],
+    fingerprint: row.fingerprint ?? null,
+    metadata: (row.metadata ?? {}) as Record<string, unknown>,
+    createdAt: row.created_at ?? new Date().toISOString(),
+    resolvedAt: row.resolved_at ?? null,
+  };
+}
+
+function mapIncident(row: any): IncidentRecord {
+  return {
+    id: String(row.id),
+    source: String(row.source),
+    resource: String(row.resource),
+    status: row.status as IncidentRecord["status"],
+    summary: String(row.summary),
+    metadata: (row.metadata ?? {}) as Record<string, unknown>,
+    startedAt: row.started_at ?? new Date().toISOString(),
+    resolvedAt: row.resolved_at ?? null,
+    createdAt: row.created_at ?? new Date().toISOString(),
+    updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
+  };
+}
+
+export async function listAlerts() {
+  const { data, error } = await client()
+    .from("kern_alerts")
+    .select("id,kind,severity,title,body,status,fingerprint,metadata,created_at,resolved_at,updated_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapAlert);
+}
+
+export async function listIncidents() {
+  const { data, error } = await client()
+    .from("kern_incidents")
+    .select("id,source,resource,status,summary,metadata,started_at,resolved_at,created_at,updated_at")
+    .order("started_at", { ascending: false })
+    .limit(100);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapIncident);
+}
+
+export async function acknowledgeAlert(id: string) {
+  const { data, error } = await client()
+    .from("kern_alerts")
+    .update({
+      status: "acknowledged",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("status", "open")
+    .select("id,kind,severity,title,body,status,fingerprint,metadata,created_at,resolved_at,updated_at")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await recordAuditEvent({
+    action: "alert.acknowledge",
+    resource: id,
+  });
+
+  return mapAlert(data);
+}
+
+function incidentIdentity(alert: AlertRecord) {
+  if (alert.kind === "uptime") {
+    const url = typeof alert.metadata.url === "string" ? alert.metadata.url : alert.fingerprint;
+    return url ? { source: "uptime", resource: String(url) } : null;
+  }
+
+  if (alert.kind === "deployment") {
+    const provider = typeof alert.metadata.provider === "string" ? alert.metadata.provider : "deployment";
+    const title = alert.title.replace(/ deployment failed$/i, "");
+    return { source: "deployment", resource: `${provider}:${title}` };
+  }
+
+  return null;
+}
+
+export async function syncOperationalState(liveAlerts: AlertRecord[]) {
+  if (!persistenceConfigured() || !persistenceAccessAllowed()) return;
+
+  const db = client();
+  const now = new Date().toISOString();
+  const activeFingerprints = new Set(
+    liveAlerts.map((alert) => alert.fingerprint).filter((value): value is string => Boolean(value)),
+  );
+
+  const { data: storedAlerts, error: storedAlertsError } = await db
+    .from("kern_alerts")
+    .select("id,status,fingerprint")
+    .in("status", ["open", "acknowledged"]);
+
+  if (storedAlertsError) throw new Error(storedAlertsError.message);
+
+  const storedByFingerprint = new Map(
+    (storedAlerts ?? [])
+      .filter((row: any) => row.fingerprint)
+      .map((row: any) => [String(row.fingerprint), row]),
+  );
+
+  for (const alert of liveAlerts) {
+    if (!alert.fingerprint) continue;
+    const stored = storedByFingerprint.get(alert.fingerprint);
+
+    if (stored) {
+      const { error } = await db
+        .from("kern_alerts")
+        .update({
+          kind: alert.kind,
+          severity: alert.severity,
+          title: alert.title,
+          body: alert.body,
+          metadata: alert.metadata,
+          updated_at: now,
+        })
+        .eq("id", stored.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await db.from("kern_alerts").insert({
+        kind: alert.kind,
+        severity: alert.severity,
+        title: alert.title,
+        body: alert.body,
+        status: "open",
+        fingerprint: alert.fingerprint,
+        metadata: alert.metadata,
+      });
+      if (error) throw new Error(error.message);
+    }
+  }
+
+  for (const stored of storedAlerts ?? []) {
+    if (!stored.fingerprint || activeFingerprints.has(String(stored.fingerprint))) continue;
+    const { error } = await db
+      .from("kern_alerts")
+      .update({
+        status: "resolved",
+        resolved_at: now,
+        updated_at: now,
+      })
+      .eq("id", stored.id);
+    if (error) throw new Error(error.message);
+  }
+
+  const criticalIdentities = new Map<string, { source: string; resource: string; alert: AlertRecord }>();
+  for (const alert of liveAlerts) {
+    if (alert.severity !== "critical") continue;
+    const identity = incidentIdentity(alert);
+    if (!identity) continue;
+    criticalIdentities.set(`${identity.source}:${identity.resource}`, { ...identity, alert });
+  }
+
+  const { data: openIncidents, error: incidentError } = await db
+    .from("kern_incidents")
+    .select("id,source,resource")
+    .eq("status", "open");
+
+  if (incidentError) throw new Error(incidentError.message);
+
+  const openByIdentity = new Map(
+    (openIncidents ?? []).map((row: any) => [`${row.source}:${row.resource}`, row]),
+  );
+
+  for (const [identity, item] of criticalIdentities) {
+    if (openByIdentity.has(identity)) {
+      const { error } = await db
+        .from("kern_incidents")
+        .update({
+          summary: item.alert.title,
+          metadata: item.alert.metadata,
+          updated_at: now,
+        })
+        .eq("id", openByIdentity.get(identity).id);
+      if (error) throw new Error(error.message);
+      continue;
+    }
+
+    const { error } = await db.from("kern_incidents").insert({
+      source: item.source,
+      resource: item.resource,
+      status: "open",
+      summary: item.alert.title,
+      metadata: item.alert.metadata,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  for (const [identity, incident] of openByIdentity) {
+    if (criticalIdentities.has(identity)) continue;
+    const { error } = await db
+      .from("kern_incidents")
+      .update({
+        status: "resolved",
+        resolved_at: now,
+        updated_at: now,
+      })
+      .eq("id", incident.id);
+    if (error) throw new Error(error.message);
   }
 }

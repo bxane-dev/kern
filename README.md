@@ -30,6 +30,10 @@
 - Supabase/Postgres persistent TODO storage
 - Database-ready incident, alert, audit-event, and settings tables
 - Automatic local TODO fallback when cloud persistence is unavailable
+- Automatic downtime, latency, and failed-deployment alerts
+- Persistent alert acknowledgement and incident history with Supabase
+- Native Electron notifications and browser notifications
+- Alert fingerprinting and automatic recovery resolution
 
 ## Stack
 
@@ -156,7 +160,11 @@ Use semicolon-separated `Name|URL` entries:
 KERN_MONITORS=XAN|https://xan.example.com;API|https://api.example.com/health
 ```
 
-KERN performs server-side checks when dashboard data refreshes.
+KERN performs server-side checks when dashboard data refreshes. Each refresh also evaluates monitor failures, slow responses, and the latest deployment state.
+
+Use `KERN_LATENCY_WARN_MS` to control the latency warning threshold (default: `1500` ms). Active conditions appear immediately in **Alerts**. When Supabase persistence is configured, KERN deduplicates them by fingerprint, records critical incidents, and automatically resolves alerts/incidents after recovery.
+
+The web app can send browser notifications after permission is granted. The installed desktop application uses native Electron system notifications.
 
 ## Security
 
@@ -196,4 +204,4 @@ For Render, create a Node web service with:
 
 GitHub, deployment, log, and uptime data is fetched live from server routes. TODOs use Supabase/Postgres when configured and fall back to browser `localStorage` when persistence is unavailable.
 
-The included schema also reserves persistent tables for incident history, alerts, audit events, and KERN settings so later phases can build on the same database without a storage redesign.
+The included schema stores TODOs, operational alerts, incident history, audit events, and KERN settings. Alert/incident rows are derived from real provider and monitor state; KERN does not fabricate health events.

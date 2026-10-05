@@ -442,3 +442,57 @@ a.row:hover { background: #111; }
   .task-compose input { min-width: 100%; }
   .todo-storage-state { flex: 1; }
 }
+
+
+/* Alerts and incidents */
+.alert-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.alert-summary-card { min-height: 82px; border: 1px solid var(--border); background: var(--panel); border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 12px; color: #888; }
+.alert-summary-card.critical { color: #d97f7f; border-color: rgba(255,107,107,.18); }
+.alert-summary-card > div { display: flex; flex-direction: column; gap: 2px; }
+.alert-summary-card strong { color: #e7e7e7; font-size: 21px; letter-spacing: -.04em; }
+.alert-summary-card span { color: #656565; font-size: 9px; }
+.notification-strip { min-height: 62px; border: 1px solid var(--border); background: var(--panel); border-radius: 10px; margin-bottom: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.notification-strip > div { display: flex; align-items: center; gap: 10px; color: #919191; }
+.notification-strip strong { display: block; font-size: 10px; color: #c9c9c9; }
+.notification-strip p { margin: 3px 0 0; color: #616161; font-size: 9px; }
+.notification-enabled { color: #86d9a8; font-size: 8px; font-weight: 800; letter-spacing: .08em; display: inline-flex; align-items: center; gap: 5px; }
+.alerts-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: 10px; }
+.ops-list, .incident-list { max-height: 640px; overflow: auto; }
+.ops-alert { min-height: 78px; display: grid; grid-template-columns: 35px minmax(0,1fr) auto; gap: 10px; align-items: center; border-bottom: 1px solid #191919; padding: 11px 15px; }
+.ops-alert:last-child { border-bottom: 0; }
+.ops-alert.resolved { opacity: .62; }
+.ops-alert-icon { width: 34px; height: 34px; border: 1px solid #2a2a2a; background: #141414; border-radius: 8px; display: grid; place-items: center; color: #888; }
+.ops-alert.critical .ops-alert-icon { color: var(--red); border-color: rgba(255,107,107,.2); }
+.ops-alert.warning .ops-alert-icon { color: var(--yellow); border-color: rgba(245,196,81,.2); }
+.ops-alert.resolved .ops-alert-icon { color: var(--green); }
+.ops-alert-copy { min-width: 0; }
+.ops-alert-copy > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ops-alert-copy strong { font-size: 10px; }
+.ops-alert-copy p { margin: 4px 0; color: #696969; font-size: 9px; line-height: 1.45; }
+.ops-alert-copy em { color: #4f4f4f; font-size: 8px; font-style: normal; }
+.severity-badge { border: 1px solid #2d2d2d; background: #141414; border-radius: 8px; padding: 2px 5px; font-size: 7px; text-transform: uppercase; letter-spacing: .06em; color: #777; }
+.severity-badge.critical { color: #e78d8d; border-color: rgba(255,107,107,.2); }
+.severity-badge.warning { color: #dbc16e; border-color: rgba(245,196,81,.2); }
+.severity-badge.info { color: #86aef2; border-color: rgba(114,167,255,.2); }
+.severity-badge.neutral { color: #777; }
+.incident-row { min-height: 67px; display: grid; grid-template-columns: 8px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 10px 15px; border-bottom: 1px solid #191919; }
+.incident-row:last-child { border-bottom: 0; }
+.incident-state { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+.incident-state.resolved { background: var(--green); }
+.incident-row strong { display: block; font-size: 10px; }
+.incident-row p { margin: 3px 0 0; color: #606060; font-size: 8px; word-break: break-all; }
+.incident-row > div:last-child { display: flex; flex-direction: column; text-align: right; gap: 3px; }
+.incident-row > div:last-child span { color: #777; font-size: 8px; text-transform: uppercase; }
+.incident-row > div:last-child em { color: #505050; font-size: 8px; font-style: normal; }
+
+@media (max-width: 1000px) {
+  .alert-summary-grid { grid-template-columns: 1fr 1fr; }
+  .alerts-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .alert-summary-grid { grid-template-columns: 1fr 1fr; gap: 7px; }
+  .alert-summary-card { min-height: 70px; padding: 11px; }
+  .notification-strip { align-items: flex-start; }
+  .ops-alert { grid-template-columns: 31px minmax(0,1fr); }
+  .ops-alert > .button { grid-column: 2; justify-self: start; }
+}

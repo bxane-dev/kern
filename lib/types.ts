@@ -24,6 +24,32 @@ export type Todo = {
   updatedAt: string;
 };
 
+export type AlertRecord = {
+  id: string | number;
+  kind: string;
+  severity: "info" | "warning" | "critical";
+  title: string;
+  body: string | null;
+  status: "open" | "acknowledged" | "resolved";
+  fingerprint: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
+export type IncidentRecord = {
+  id: string;
+  source: string;
+  resource: string;
+  status: "open" | "resolved";
+  summary: string;
+  metadata: Record<string, unknown>;
+  startedAt: string;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type GitHubItem = {
   id: number | string;
   number?: number;
@@ -84,6 +110,7 @@ export type DashboardData = {
   logs: LogLine[];
   monitors: Monitor[];
   activity: Activity[];
+  alerts: AlertRecord[];
   integrations: {
     github: boolean;
     vercel: boolean;

@@ -33,6 +33,7 @@ declare global {
       }) => Promise<KernDesktopConfig>;
       restartServer: () => Promise<{ ok: boolean }>;
       openConfigLocation: () => Promise<{ ok: boolean }>;
+      notify: (notification: { title: string; body: string }) => Promise<{ ok: boolean }>;
     };
   }
 }
