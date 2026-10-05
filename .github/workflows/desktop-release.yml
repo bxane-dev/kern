@@ -72,8 +72,7 @@ jobs:
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
         shell: bash
         run: |
-          shopt -s globstar nullglob
-          FILES=(installers/**/*)
+          mapfile -d '' FILES < <(find installers -type f -print0)
 
           if [ ${#FILES[@]} -eq 0 ]; then
             echo "No release artifacts found"

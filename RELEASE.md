@@ -41,3 +41,5 @@ KERN AI is read-only and cannot execute deployments, rollbacks, restarts, merges
 Windows packages are Authenticode-signed only when a valid signing certificate is configured in the repository's GitHub Actions secrets. Otherwise Windows may display an Unknown publisher warning.
 
 See `CHANGELOG.md` for the complete 1.0.0 feature history.
+
+Release assets are produced automatically by KERN's verified GitHub Actions release pipeline.
