@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -21,34 +21,13 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          package-manager-cache: false
+          package-manager-cache: npm
 
       - name: Install dependencies
-        run: npm install
-
-      - name: Export dependency lock
-        uses: actions/upload-artifact@v4
-        with:
-          name: KERN-package-lock
-          path: package-lock.json
-          retention-days: 1
+        run: npm ci
 
       - name: Typecheck
         run: npm run typecheck
 
       - name: Build
         run: npm run build
-
-      - name: Commit dependency lock
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          if git diff --cached --quiet; then
-            echo "package-lock.json already committed"
-            exit 0
-          fi
-          git commit -m "chore: lock dependencies [skip ci]"
-          git push
