@@ -1,5 +1,7 @@
 # KERN
 
+**Stable release: v1.0.0**
+
 **KERN** is a developer command center for GitHub activity, deployments, build logs, uptime checks, issues, pull requests, and personal TODOs.
 
 ![KERN](https://img.shields.io/badge/KERN-Developer_Command_Center-111111?style=for-the-badge)
@@ -94,7 +96,9 @@ npm run desktop:linux
 
 Artifacts are written to `dist/`.
 
-To publish installer files as a GitHub Release, push a tag matching `package.json`, for example `v0.6.0`. KERN publishes the installers plus electron-updater metadata files; installed desktop builds can then detect and download that release automatically.
+Stable installer builds are published through GitHub Releases together with electron-updater metadata. Normal users do not need a terminal to install or update KERN.
+
+For future updates, open **Settings → Desktop configuration → KERN updates**, choose **Check now**, then **Download**, then **Restart & install**.
 
 ### Windows code signing
 

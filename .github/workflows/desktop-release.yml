@@ -2,6 +2,9 @@ name: Desktop Release
 
 on:
   push:
+    branches: ["main"]
+    paths:
+      - "RELEASE.md"
     tags: ["v*"]
   workflow_dispatch:
 
@@ -25,7 +28,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           TAG="v$VERSION"
 
-          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_NAME" != "$TAG" ]; then
+          if [[ "$GITHUB_REF" == refs/tags/* ]] && [ "$GITHUB_REF_NAME" != "$TAG" ]; then
             echo "Tag $GITHUB_REF_NAME does not match package version $TAG"
             exit 1
           fi
@@ -81,10 +84,16 @@ jobs:
             gh release upload "$RELEASE_TAG" "${FILES[@]}" \
               --repo "$GITHUB_REPOSITORY" \
               --clobber
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "KERN $RELEASE_TAG — Stable" \
+              --notes-file RELEASE.md \
+              --latest
           else
             gh release create "$RELEASE_TAG" "${FILES[@]}" \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "KERN $RELEASE_TAG" \
-              --generate-notes
+              --title "KERN $RELEASE_TAG — Stable" \
+              --notes-file RELEASE.md \
+              --latest
           fi
