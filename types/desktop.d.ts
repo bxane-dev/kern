@@ -14,6 +14,15 @@ declare global {
     | "RENDER_SERVICE_ID"
     | "KERN_MONITORS";
 
+  type KernUpdateState = {
+    supported: boolean;
+    status: "idle" | "unsupported" | "checking" | "current" | "available" | "downloading" | "downloaded" | "error";
+    currentVersion: string;
+    availableVersion: string | null;
+    progress: number | null;
+    message: string;
+  };
+
   type KernDesktopConfig = {
     values: Record<KernDesktopValue, string>;
     hasSecrets: Record<KernDesktopSecret, boolean>;
@@ -34,6 +43,11 @@ declare global {
       restartServer: () => Promise<{ ok: boolean }>;
       openConfigLocation: () => Promise<{ ok: boolean }>;
       notify: (notification: { title: string; body: string }) => Promise<{ ok: boolean }>;
+      getUpdateState: () => Promise<KernUpdateState>;
+      checkForUpdates: () => Promise<KernUpdateState>;
+      downloadUpdate: () => Promise<KernUpdateState>;
+      installUpdate: () => Promise<{ ok: boolean }>;
+      onUpdateStatus: (callback: (state: KernUpdateState) => void) => () => void;
     };
   }
 }

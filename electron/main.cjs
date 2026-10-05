@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, Notification, ipcMain, session, shell } = require("electron");
 const { spawn } = require("node:child_process");
+const { autoUpdater } = require("electron-updater");
 const fs = require("node:fs");
 const net = require("node:net");
 const path = require("node:path");
@@ -16,6 +17,136 @@ const HOST = "127.0.0.1";
 let mainWindow = null;
 let serverProcess = null;
 let serverUrl = null;
+
+const updateState = {
+  supported: false,
+  status: "idle",
+  currentVersion: app.getVersion(),
+  availableVersion: null,
+  progress: null,
+  message: "Updater not initialized.",
+};
+
+function publishUpdateState(patch = {}) {
+  Object.assign(updateState, patch);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("kern:update:status", { ...updateState });
+  }
+  return { ...updateState };
+}
+
+function updaterSupported() {
+  return app.isPackaged && (process.platform === "win32" || process.platform === "linux");
+}
+
+function configureUpdater() {
+  const supported = updaterSupported();
+  publishUpdateState({
+    supported,
+    currentVersion: app.getVersion(),
+    status: supported ? "idle" : "unsupported",
+    message: supported
+      ? "Ready to check GitHub Releases."
+      : "Auto-update checks are available in packaged Windows/Linux builds.",
+  });
+
+  if (!supported) return;
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.allowPrerelease = false;
+
+  autoUpdater.on("checking-for-update", () => {
+    publishUpdateState({
+      status: "checking",
+      progress: null,
+      message: "Checking GitHub Releases…",
+    });
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    publishUpdateState({
+      status: "available",
+      availableVersion: info.version,
+      progress: null,
+      message: `KERN ${info.version} is available.`,
+    });
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    publishUpdateState({
+      status: "current",
+      availableVersion: null,
+      progress: null,
+      message: "KERN is up to date.",
+    });
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    publishUpdateState({
+      status: "downloading",
+      progress: Math.max(0, Math.min(100, Math.round(progress.percent || 0))),
+      message: `Downloading update… ${Math.round(progress.percent || 0)}%`,
+    });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    publishUpdateState({
+      status: "downloaded",
+      availableVersion: info.version,
+      progress: 100,
+      message: `KERN ${info.version} is ready to install.`,
+    });
+  });
+
+  autoUpdater.on("error", (error) => {
+    publishUpdateState({
+      status: "error",
+      progress: null,
+      message: String(error?.message || "Update check failed.").slice(0, 500),
+    });
+  });
+}
+
+async function checkForDesktopUpdate() {
+  if (!updaterSupported()) return publishUpdateState();
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch (error) {
+    publishUpdateState({
+      status: "error",
+      progress: null,
+      message: String(error?.message || "Update check failed.").slice(0, 500),
+    });
+  }
+  return { ...updateState };
+}
+
+async function downloadDesktopUpdate() {
+  if (!updaterSupported()) return publishUpdateState();
+  if (updateState.status !== "available" && updateState.status !== "error") {
+    return publishUpdateState();
+  }
+  try {
+    await autoUpdater.downloadUpdate();
+  } catch (error) {
+    publishUpdateState({
+      status: "error",
+      progress: null,
+      message: String(error?.message || "Update download failed.").slice(0, 500),
+    });
+  }
+  return { ...updateState };
+}
+
+function installDesktopUpdate() {
+  if (!updaterSupported() || updateState.status !== "downloaded") {
+    return { ok: false };
+  }
+
+  setImmediate(() => autoUpdater.quitAndInstall(false, true));
+  return { ok: true };
+}
 
 app.setName("KERN");
 app.setAppUserModelId(APP_ID);
@@ -193,6 +324,11 @@ async function restartServer() {
   return { ok: true };
 }
 
+ipcMain.handle("kern:update:get", () => ({ ...updateState }));
+ipcMain.handle("kern:update:check", () => checkForDesktopUpdate());
+ipcMain.handle("kern:update:download", () => downloadDesktopUpdate());
+ipcMain.handle("kern:update:install", () => installDesktopUpdate());
+
 ipcMain.handle("kern:notify", (_event, input = {}) => {
   if (!Notification.isSupported()) return { ok: false };
   const title = String(input.title || "KERN").slice(0, 160);
@@ -220,8 +356,17 @@ app.whenReady().then(async () => {
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
 
   try {
+    configureUpdater();
     await startServer();
     await createWindow();
+
+    if (updaterSupported()) {
+      const firstCheck = setTimeout(() => void checkForDesktopUpdate(), 12_000);
+      firstCheck.unref?.();
+
+      const interval = setInterval(() => void checkForDesktopUpdate(), 6 * 60 * 60 * 1000);
+      interval.unref?.();
+    }
   } catch (error) {
     console.error(error);
     app.quit();

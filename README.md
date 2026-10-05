@@ -40,6 +40,10 @@
 - Roll back Vercel production to a previous deployment
 - Restart the configured Render service
 - Audit logging for control-plane mutations
+- GitHub Releases desktop auto-updater
+- Manual download + explicit restart/install flow
+- Windows code-signing hooks for Authenticode certificates
+- Release metadata for NSIS/AppImage/DEB updates
 
 ## Stack
 
@@ -85,7 +89,18 @@ npm run desktop:linux
 
 Artifacts are written to `dist/`.
 
-To publish installer files as a GitHub Release, push a version tag such as `v0.2.0`.
+To publish installer files as a GitHub Release, push a tag matching `package.json`, for example `v0.6.0`. KERN publishes the installers plus electron-updater metadata files; installed desktop builds can then detect and download that release automatically.
+
+### Windows code signing
+
+Production signing is supported through GitHub Actions secrets:
+
+```text
+WIN_CSC_LINK
+WIN_CSC_KEY_PASSWORD
+```
+
+`WIN_CSC_LINK` may be a base64-encoded or remotely hosted `.pfx/.p12` certificate. Never commit the certificate or password to the repository. Without these secrets the workflow still builds, but the Windows installer remains unsigned and may trigger SmartScreen warnings.
 
 ## Run locally
 

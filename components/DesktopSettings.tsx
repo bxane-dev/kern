@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, FolderOpen, KeyRound, Loader2, MonitorCog, RotateCw, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Download, FolderOpen, KeyRound, Loader2, MonitorCog, PackageCheck, RefreshCw, RotateCw, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 const secretFields: Array<{ key: KernDesktopSecret; label: string; placeholder: string }> = [
@@ -26,6 +26,8 @@ export function DesktopSettings() {
   const [clearSecrets, setClearSecrets] = useState<KernDesktopSecret[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [update, setUpdate] = useState<KernUpdateState | null>(null);
+  const [updateBusy, setUpdateBusy] = useState(false);
 
   useEffect(() => {
     if (!bridge) return;
@@ -33,6 +35,8 @@ export function DesktopSettings() {
       setConfig(loaded);
       setValues({ ...initialValues, ...loaded.values });
     });
+    void bridge.getUpdateState().then(setUpdate);
+    return bridge.onUpdateStatus(setUpdate);
   }, [bridge]);
 
   const changedSecretCount = useMemo(
@@ -60,6 +64,17 @@ export function DesktopSettings() {
     }
   }
 
+  async function updateAction(action: "check" | "download" | "install") {
+    setUpdateBusy(true);
+    try {
+      if (action === "check") setUpdate(await desktopBridge.checkForUpdates());
+      if (action === "download") setUpdate(await desktopBridge.downloadUpdate());
+      if (action === "install") await desktopBridge.installUpdate();
+    } finally {
+      if (action !== "install") setUpdateBusy(false);
+    }
+  }
+
   function toggleClear(key: KernDesktopSecret) {
     setClearSecrets((current) =>
       current.includes(key) ? current.filter((item) => item !== key) : [...current, key],
@@ -75,6 +90,42 @@ export function DesktopSettings() {
           <p>Stored locally for the installed KERN application</p>
         </div>
         <span className="desktop-badge"><MonitorCog size={13} /> DESKTOP</span>
+      </div>
+
+      <div className="desktop-update-card">
+        <div className="desktop-update-main">
+          <div className="desktop-update-icon">
+            {update?.status === "downloaded" ? <PackageCheck size={18} /> : <RefreshCw size={18} />}
+          </div>
+          <div>
+            <strong>KERN updates</strong>
+            <p>{update?.message || "Loading updater status…"}</p>
+            <span>
+              Installed {update?.currentVersion || "—"}
+              {update?.availableVersion ? ` · Available ${update.availableVersion}` : ""}
+            </span>
+          </div>
+        </div>
+        {update?.status === "downloading" && update.progress !== null ? (
+          <div className="desktop-update-progress">
+            <span style={{ width: `${update.progress}%` }} />
+          </div>
+        ) : null}
+        <div className="desktop-update-actions">
+          {update?.status === "available" ? (
+            <button className="button primary" type="button" disabled={updateBusy} onClick={() => void updateAction("download")}>
+              {updateBusy ? <Loader2 className="spin" size={14} /> : <Download size={14} />}Download
+            </button>
+          ) : update?.status === "downloaded" ? (
+            <button className="button primary" type="button" onClick={() => void updateAction("install")}>
+              <RotateCw size={14} />Restart & install
+            </button>
+          ) : (
+            <button className="button" type="button" disabled={updateBusy || update?.status === "checking" || update?.status === "downloading" || update?.supported === false} onClick={() => void updateAction("check")}>
+              {updateBusy || update?.status === "checking" ? <Loader2 className="spin" size={14} /> : <RefreshCw size={14} />}Check now
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="desktop-config-status">

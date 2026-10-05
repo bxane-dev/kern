@@ -496,3 +496,15 @@ a.row:hover { background: #111; }
   .ops-alert { grid-template-columns: 31px minmax(0,1fr); }
   .ops-alert > .button { grid-column: 2; justify-self: start; }
 }
+
+
+/* Desktop updater */
+.desktop-update-card { margin: 14px 16px 0; border: 1px solid #292929; background: #0b0b0b; border-radius: 9px; padding: 12px; }
+.desktop-update-main { display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 10px; align-items: center; }
+.desktop-update-icon { width: 36px; height: 36px; border: 1px solid #303030; background: #151515; border-radius: 8px; display: grid; place-items: center; color: #a2a2a2; }
+.desktop-update-main strong { display: block; font-size: 10px; }
+.desktop-update-main p { margin: 3px 0; color: #686868; font-size: 9px; }
+.desktop-update-main span { color: #515151; font-size: 8px; }
+.desktop-update-progress { height: 4px; background: #1a1a1a; border-radius: 3px; overflow: hidden; margin-top: 10px; }
+.desktop-update-progress span { display: block; height: 100%; background: #d7d7d7; border-radius: inherit; transition: width .2s ease; }
+.desktop-update-actions { display: flex; gap: 7px; justify-content: flex-end; margin-top: 10px; }
