@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -38,3 +38,17 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Commit dependency lock
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "package-lock.json already committed"
+            exit 0
+          fi
+          git commit -m "chore: lock dependencies [skip ci]"
+          git push
