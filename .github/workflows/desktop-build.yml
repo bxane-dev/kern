@@ -11,6 +11,7 @@ on:
       - "components/DesktopSettings.tsx"
       - "types/desktop.d.ts"
       - "package.json"
+      - "package-lock.json"
       - "next.config.ts"
       - "app/api/auth/route.ts"
       - "build/**"
@@ -28,20 +29,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
       - name: Build desktop server
         run: npm run build:desktop
+
       - name: Build NSIS installer
         run: npx electron-builder --win nsis --x64 --publish never
         env:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
@@ -60,17 +66,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          package-manager-cache: false
+          cache: npm
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
       - name: Build desktop server
         run: npm run build:desktop
+
       - name: Build AppImage and DEB
         run: npx electron-builder --linux AppImage deb --x64 --publish never
+
       - name: Upload Linux installers
         uses: actions/upload-artifact@v4
         with:
