@@ -146,7 +146,7 @@ KERN also accepts the legacy `SUPABASE_SERVICE_ROLE_KEY` on servers for compatib
 
 The Supabase key is server-only. KERN never exposes it to browser code. Tables have RLS enabled and access for `anon` and `authenticated` is explicitly revoked.
 
-If Supabase is not configured, the TODO board automatically falls back to browser-local storage. On the desktop build, Supabase URL and the server key can be configured under **Settings → Desktop configuration**.
+If Supabase is not configured, the TODO board automatically falls back to browser-local storage. KERN Desktop intentionally does not accept a Supabase secret key: secret keys belong only on a hosted/backend deployment, never in a shipped client application.
 
 ### Uptime monitors
 

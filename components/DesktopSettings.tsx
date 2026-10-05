@@ -7,7 +7,6 @@ const secretFields: Array<{ key: KernDesktopSecret; label: string; placeholder: 
   { key: "GITHUB_TOKEN", label: "GitHub token", placeholder: "github_pat_…" },
   { key: "VERCEL_TOKEN", label: "Vercel token", placeholder: "Vercel access token" },
   { key: "RENDER_API_KEY", label: "Render API key", placeholder: "Render API key" },
-  { key: "SUPABASE_SECRET_KEY", label: "Supabase server key", placeholder: "Supabase server key" },
   { key: "KERN_PASSWORD", label: "KERN password", placeholder: "Local dashboard password" },
 ];
 
@@ -16,7 +15,6 @@ const initialValues: Record<KernDesktopValue, string> = {
   VERCEL_TEAM_ID: "",
   VERCEL_PROJECT_ID: "",
   RENDER_SERVICE_ID: "",
-  SUPABASE_URL: "",
   KERN_MONITORS: "",
 };
 
@@ -107,10 +105,6 @@ export function DesktopSettings() {
         <label>
           <span>Render service ID</span>
           <input value={values.RENDER_SERVICE_ID} onChange={(event) => setValues((current) => ({ ...current, RENDER_SERVICE_ID: event.target.value }))} placeholder="srv-…" />
-        </label>
-        <label>
-          <span>Supabase URL</span>
-          <input value={values.SUPABASE_URL} onChange={(event) => setValues((current) => ({ ...current, SUPABASE_URL: event.target.value }))} placeholder="https://project-ref.supabase.co" />
         </label>
       </div>
 
