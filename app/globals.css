@@ -416,3 +416,29 @@ a.row:hover { background: #111; }
   .desktop-config-footer > div { flex-direction: column; align-items: stretch; }
   .desktop-config-footer > div > span { max-width: 100%; }
 }
+
+
+/* TODO persistence state */
+.task-compose { align-items: center; }
+.todo-storage-state {
+  min-height: 31px;
+  padding: 0 9px;
+  border: 1px solid #292929;
+  border-radius: 7px;
+  background: #101010;
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.todo-storage-state.cloud {
+  color: #8bdcab;
+  border-color: rgba(94,229,154,.18);
+}
+@media (max-width: 600px) {
+  .task-compose { flex-wrap: wrap; }
+  .task-compose input { min-width: 100%; }
+  .todo-storage-state { flex: 1; }
+}

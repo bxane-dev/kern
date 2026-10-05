@@ -27,6 +27,9 @@
 - Windows NSIS installer
 - Linux AppImage and DEB packages
 - Desktop credential/settings manager
+- Supabase/Postgres persistent TODO storage
+- Database-ready incident, alert, audit-event, and settings tables
+- Automatic local TODO fallback when cloud persistence is unavailable
 
 ## Stack
 
@@ -126,6 +129,25 @@ RENDER_SERVICE_ID=
 
 Both variables are required for Render deployment history.
 
+### Persistent storage
+
+KERN supports a dedicated Supabase/Postgres database for persistent operational data.
+
+1. Create a dedicated Supabase project for KERN.
+2. Run `supabase/kern_schema.sql` in that project's SQL editor.
+3. Configure:
+
+```env
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SECRET_KEY=your-server-side-secret-key
+```
+
+KERN also accepts the legacy `SUPABASE_SERVICE_ROLE_KEY` on servers for compatibility, but new deployments should use a modern Supabase secret key.
+
+The Supabase key is server-only. KERN never exposes it to browser code. Tables have RLS enabled and access for `anon` and `authenticated` is explicitly revoked.
+
+If Supabase is not configured, the TODO board automatically falls back to browser-local storage. On the desktop build, Supabase URL and the server key can be configured under **Settings → Desktop configuration**.
+
 ### Uptime monitors
 
 Use semicolon-separated `Name|URL` entries:
@@ -172,6 +194,6 @@ For Render, create a Node web service with:
 
 ## Data behavior
 
-GitHub, deployment, log, and uptime data is fetched live from server routes. TODOs are intentionally stored in the browser's `localStorage` so KERN works without a database.
+GitHub, deployment, log, and uptime data is fetched live from server routes. TODOs use Supabase/Postgres when configured and fall back to browser `localStorage` when persistence is unavailable.
 
-A future multi-user version can move TODOs, incidents, alert history, and user settings to PostgreSQL/Supabase without changing the provider adapter model.
+The included schema also reserves persistent tables for incident history, alerts, audit events, and KERN settings so later phases can build on the same database without a storage redesign.

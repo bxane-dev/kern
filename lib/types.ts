@@ -13,6 +13,17 @@ export type Project = {
   private: boolean;
 };
 
+export type Todo = {
+  id: string;
+  title: string;
+  project: string;
+  priority: "low" | "medium" | "high" | "critical";
+  done: boolean;
+  dueAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type GitHubItem = {
   id: number | string;
   number?: number;
@@ -78,6 +89,7 @@ export type DashboardData = {
     vercel: boolean;
     render: boolean;
     uptime: boolean;
+    database: boolean;
   };
   writeActions: {
     locked: boolean;

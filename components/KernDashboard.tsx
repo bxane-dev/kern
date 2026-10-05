@@ -32,7 +32,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { DashboardData, Deployment, GitHubItem, Monitor, Project } from "@/lib/types";
+import type { DashboardData, Deployment, GitHubItem, Monitor, Project, Todo } from "@/lib/types";
 import { ActionCenter } from "@/components/ActionCenter";
 import { DesktopSettings } from "@/components/DesktopSettings";
 
@@ -47,14 +47,6 @@ type Tab =
   | "tasks"
   | "actions"
   | "settings";
-
-type Todo = {
-  id: string;
-  title: string;
-  project: string;
-  priority: "low" | "medium" | "high" | "critical";
-  done: boolean;
-};
 
 const nav = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -249,6 +241,8 @@ export function KernDashboard() {
   const [search, setSearch] = useState("");
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
+  const [todoMode, setTodoMode] = useState<"loading" | "cloud" | "local">("loading");
+  const [todoError, setTodoError] = useState("");
 
   const load = useCallback(async (quiet = false) => {
     quiet ? setRefreshing(true) : setLoading(true);
@@ -276,17 +270,55 @@ export function KernDashboard() {
   }, [load]);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("kern.todos");
-      if (stored) setTodos(JSON.parse(stored));
-    } catch {
-      // Local TODO storage is optional.
+    let cancelled = false;
+
+    async function hydrateTodos() {
+      let localTodos: Todo[] = [];
+
+      try {
+        const stored = localStorage.getItem("kern.todos");
+        if (stored) localTodos = JSON.parse(stored);
+      } catch {
+        localTodos = [];
+      }
+
+      try {
+        const response = await fetch("/api/storage/todos", { cache: "no-store" });
+        const body = await response.json().catch(() => ({}));
+
+        if (response.ok && body.configured) {
+          if (!cancelled) {
+            setTodos(Array.isArray(body.todos) ? body.todos : []);
+            setTodoMode("cloud");
+            setTodoError("");
+            localStorage.removeItem("kern.todos");
+          }
+          return;
+        }
+
+        if (response.status === 403 && body.error) {
+          setTodoError(String(body.error));
+        }
+      } catch {
+        // Cloud persistence is optional; local fallback stays available.
+      }
+
+      if (!cancelled) {
+        setTodos(localTodos);
+        setTodoMode("local");
+      }
     }
+
+    void hydrateTodos();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
+    if (todoMode !== "local") return;
     localStorage.setItem("kern.todos", JSON.stringify(todos));
-  }, [todos]);
+  }, [todos, todoMode]);
 
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
@@ -309,9 +341,36 @@ export function KernDashboard() {
   const downMonitors = data?.monitors.filter((item) => item.status === "down").length ?? 0;
   const activeTodos = todos.filter((item) => !item.done).length;
 
-  function addTodo() {
+  async function addTodo() {
     const title = newTodo.trim();
     if (!title) return;
+
+    setTodoError("");
+
+    if (todoMode === "cloud") {
+      try {
+        const response = await fetch("/api/storage/todos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            project: "KERN",
+            priority: "medium",
+          }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Could not save TODO.");
+
+        setTodos((current) => [body.todo as Todo, ...current]);
+        setNewTodo("");
+        return;
+      } catch (error) {
+        setTodoError(error instanceof Error ? error.message : "Could not save TODO.");
+        return;
+      }
+    }
+
+    const now = new Date().toISOString();
     setTodos((current) => [
       {
         id: crypto.randomUUID(),
@@ -319,10 +378,64 @@ export function KernDashboard() {
         project: "KERN",
         priority: "medium",
         done: false,
+        dueAt: null,
+        createdAt: now,
+        updatedAt: now,
       },
       ...current,
     ]);
     setNewTodo("");
+  }
+
+  async function patchTodo(id: string, patch: Partial<Pick<Todo, "done" | "priority" | "title" | "project" | "dueAt">>) {
+    setTodoError("");
+
+    if (todoMode === "cloud") {
+      try {
+        const response = await fetch("/api/storage/todos", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, ...patch }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Could not update TODO.");
+
+        setTodos((current) => current.map((item) => item.id === id ? body.todo as Todo : item));
+        return;
+      } catch (error) {
+        setTodoError(error instanceof Error ? error.message : "Could not update TODO.");
+        return;
+      }
+    }
+
+    setTodos((current) =>
+      current.map((item) =>
+        item.id === id
+          ? { ...item, ...patch, updatedAt: new Date().toISOString() }
+          : item,
+      ),
+    );
+  }
+
+  async function removeTodo(id: string) {
+    setTodoError("");
+
+    if (todoMode === "cloud") {
+      try {
+        const response = await fetch("/api/storage/todos", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Could not delete TODO.");
+      } catch (error) {
+        setTodoError(error instanceof Error ? error.message : "Could not delete TODO.");
+        return;
+      }
+    }
+
+    setTodos((current) => current.filter((item) => item.id !== id));
   }
 
   async function logout() {
@@ -549,9 +662,11 @@ export function KernDashboard() {
           {active === "tasks" ? (
             <>
               <div className="task-compose">
-                <input value={newTodo} onChange={(event) => setNewTodo(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addTodo()} placeholder="Add a task to KERN…" />
-                <button className="button primary" onClick={addTodo}><Plus size={15} />Add task</button>
+                <input value={newTodo} onChange={(event) => setNewTodo(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void addTodo()} placeholder="Add a task to KERN…" />
+                <span className={`todo-storage-state ${todoMode}`}><StatusDot tone={todoMode === "cloud" ? "ok" : "neutral"} />{todoMode === "cloud" ? "Supabase" : todoMode === "loading" ? "Connecting…" : "Local"}</span>
+                <button className="button primary" onClick={() => void addTodo()}><Plus size={15} />Add task</button>
               </div>
+              {todoError ? <div className="alert warn"><AlertTriangle size={16} />{todoError}</div> : null}
               <div className="task-board">
                 {(["critical", "high", "medium", "low"] as const).map((priority) => {
                   const items = todos.filter((todo) => todo.priority === priority && !todo.done);
@@ -560,9 +675,9 @@ export function KernDashboard() {
                       <div className="task-column-head"><span className={`priority-dot ${priority}`} />{priority.toUpperCase()}<em>{items.length}</em></div>
                       {items.map((todo) => (
                         <div className="todo-card" key={todo.id}>
-                          <button className="todo-check" onClick={() => setTodos((all) => all.map((item) => item.id === todo.id ? { ...item, done: true } : item))}><Check size={13} /></button>
+                          <button className="todo-check" onClick={() => void patchTodo(todo.id, { done: true })}><Check size={13} /></button>
                           <div><strong>{todo.title}</strong><span>{todo.project}</span></div>
-                          <button className="todo-delete" onClick={() => setTodos((all) => all.filter((item) => item.id !== todo.id))}><Trash2 size={13} /></button>
+                          <button className="todo-delete" onClick={() => void removeTodo(todo.id)}><Trash2 size={13} /></button>
                         </div>
                       ))}
                       {!items.length ? <div className="task-empty">No {priority} tasks</div> : null}
@@ -571,10 +686,10 @@ export function KernDashboard() {
                 })}
               </div>
               {todos.some((todo) => todo.done) ? (
-                <Panel title="Completed" subtitle="Stored locally in this browser">
+                <Panel title="Completed" subtitle={todoMode === "cloud" ? "Synced with Supabase" : "Stored locally in this browser"}>
                   <div className="completed-list">
                     {todos.filter((todo) => todo.done).map((todo) => (
-                      <div key={todo.id}><CheckCircle2 size={15} /><s>{todo.title}</s><button onClick={() => setTodos((all) => all.filter((item) => item.id !== todo.id))}><Trash2 size={13} /></button></div>
+                      <div key={todo.id}><CheckCircle2 size={15} /><s>{todo.title}</s><button onClick={() => void removeTodo(todo.id)}><Trash2 size={13} /></button></div>
                     ))}
                   </div>
                 </Panel>
@@ -603,6 +718,7 @@ export function KernDashboard() {
                     { name: "Vercel", on: data.integrations.vercel, detail: "VERCEL_TOKEN" },
                     { name: "Render", on: data.integrations.render, detail: "RENDER_API_KEY + RENDER_SERVICE_ID" },
                     { name: "Uptime", on: data.integrations.uptime, detail: "KERN_MONITORS" },
+                    { name: "Database", on: data.integrations.database, detail: "SUPABASE_URL + SUPABASE_SECRET_KEY" },
                     { name: "Write actions", on: !data.writeActions.locked, detail: data.writeActions.locked ? "Set KERN_PASSWORD" : "Password protected" },
                   ].map((item) => (
                     <div key={item.name}>
@@ -616,7 +732,7 @@ export function KernDashboard() {
               <Panel title="Security" subtitle="KERN access model">
                 <div className="security-copy">
                   <div className="security-icon"><Server size={19} /></div>
-                  <div><strong>Server-only credentials</strong><p>GitHub, Vercel and Render credentials are read only inside server routes. Provider tokens are never included in dashboard JSON.</p></div>
+                  <div><strong>Server-only credentials</strong><p>GitHub, Vercel, Render and Supabase credentials are read only inside server routes. Provider tokens and database secret keys are never included in dashboard JSON.</p></div>
                 </div>
                 <div className="security-copy">
                   <div className="security-icon"><CheckCircle2 size={19} /></div>

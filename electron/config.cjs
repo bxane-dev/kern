@@ -2,12 +2,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { app, safeStorage, shell } = require("electron");
 
-const SECRET_KEYS = ["GITHUB_TOKEN", "VERCEL_TOKEN", "RENDER_API_KEY", "KERN_PASSWORD"];
+const SECRET_KEYS = ["GITHUB_TOKEN", "VERCEL_TOKEN", "RENDER_API_KEY", "SUPABASE_SECRET_KEY", "KERN_PASSWORD"];
 const VALUE_KEYS = [
   "GITHUB_OWNER",
   "VERCEL_TEAM_ID",
   "VERCEL_PROJECT_ID",
   "RENDER_SERVICE_ID",
+  "SUPABASE_URL",
   "KERN_MONITORS",
 ];
 

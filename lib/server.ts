@@ -1,3 +1,4 @@
+import { persistenceConfigured } from "@/lib/persistence";
 import type {
   Activity,
   DashboardData,
@@ -315,6 +316,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       vercel: Boolean(process.env.VERCEL_TOKEN),
       render: Boolean(process.env.RENDER_API_KEY && process.env.RENDER_SERVICE_ID),
       uptime: monitors.length > 0,
+      database: persistenceConfigured(),
     },
     writeActions: {
       locked: !Boolean(process.env.KERN_PASSWORD),
