@@ -34,6 +34,12 @@
 - Persistent alert acknowledgement and incident history with Supabase
 - Native Electron notifications and browser notifications
 - Alert fingerprinting and automatic recovery resolution
+- Close and reopen GitHub issues
+- Merge GitHub pull requests with merge/squash/rebase
+- Rerun GitHub Actions workflow runs
+- Roll back Vercel production to a previous deployment
+- Restart the configured Render service
+- Audit logging for control-plane mutations
 
 ## Stack
 
@@ -112,7 +118,7 @@ GITHUB_TOKEN=
 
 `GITHUB_TOKEN` is optional for public read-only repositories, but recommended to increase API limits. Keep it server-side.
 
-To use KERN's GitHub write actions with a fine-grained token, grant only the repositories KERN should control and enable **Issues: Read and write** plus **Actions: Read and write**.
+To use KERN's GitHub write actions with a fine-grained token, grant only the repositories KERN should control and enable **Issues: Read and write**, **Pull requests: Read and write**, and **Actions: Read and write**. Repository rules and branch protection still apply to PR merges.
 
 ### Vercel
 
@@ -122,7 +128,7 @@ VERCEL_TEAM_ID=
 VERCEL_PROJECT_ID=
 ```
 
-Set `VERCEL_TOKEN` to enable deployment history and latest deployment build events. Team/project IDs are optional filters.
+Set `VERCEL_TOKEN` to enable deployment history and latest deployment build events. `VERCEL_PROJECT_ID` is required for KERN's production rollback control. Vercel rollback availability depends on your Vercel plan.
 
 ### Render
 
@@ -131,7 +137,7 @@ RENDER_API_KEY=
 RENDER_SERVICE_ID=
 ```
 
-Both variables are required for Render deployment history.
+Both variables are required for Render deployment history and the deploy/restart controls.
 
 ### Persistent storage
 

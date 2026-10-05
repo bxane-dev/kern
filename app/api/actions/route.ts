@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
+import { recordAuditEvent } from "@/lib/persistence";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -94,6 +95,12 @@ export async function POST(request: Request) {
           },
         );
 
+        await recordAuditEvent({
+          action: "github.issue.create",
+          resource: `${repo}#${data?.number ?? ""}`,
+          metadata: { title },
+        });
+
         return NextResponse.json({
           ok: true,
           message: `Created issue #${data?.number ?? ""}`.trim(),
@@ -127,6 +134,12 @@ export async function POST(request: Request) {
           },
         );
 
+        await recordAuditEvent({
+          action: "github.workflow.dispatch",
+          resource: `${repo}:${workflow}`,
+          metadata: { ref },
+        });
+
         return NextResponse.json({ ok: true, message: `Triggered ${workflow} on ${ref}` });
       }
 
@@ -154,6 +167,12 @@ export async function POST(request: Request) {
             body: JSON.stringify({ name, deploymentId }),
           },
         );
+
+        await recordAuditEvent({
+          action: "vercel.redeploy",
+          resource: deploymentId,
+          metadata: { name },
+        });
 
         return NextResponse.json({
           ok: true,
@@ -187,6 +206,13 @@ export async function POST(request: Request) {
         );
 
         const deploy = data?.deploy ?? data;
+
+        await recordAuditEvent({
+          action: "render.deploy",
+          resource: serviceId,
+          metadata: { clearCache, deployId: deploy?.id ?? null },
+        });
+
         return NextResponse.json({
           ok: true,
           message: clearCache ? "Render clean deploy queued." : "Render deploy queued.",
@@ -194,10 +220,197 @@ export async function POST(request: Request) {
         });
       }
 
+      case "github.issue.state": {
+        const token = process.env.GITHUB_TOKEN;
+        if (!token) return jsonError("GITHUB_TOKEN is not configured.", 409);
+
+        const repo = validRepo(body.repo);
+        const issueNumber = Number(body.issueNumber);
+        if (!Number.isInteger(issueNumber) || issueNumber < 1) {
+          return jsonError("Issue number is invalid.");
+        }
+
+        const state = String(body.state);
+        if (state !== "open" && state !== "closed") {
+          return jsonError("Issue state is invalid.");
+        }
+
+        const data = await providerRequest(
+          `https://api.github.com/repos/${repo}/issues/${issueNumber}`,
+          {
+            method: "PATCH",
+            headers: {
+              Accept: "application/vnd.github+json",
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              "User-Agent": "KERN-Command-Center",
+              "X-GitHub-Api-Version": "2022-11-28",
+            },
+            body: JSON.stringify({ state }),
+          },
+        );
+
+        await recordAuditEvent({
+          action: `github.issue.${state}`,
+          resource: `${repo}#${issueNumber}`,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          message: `${state === "closed" ? "Closed" : "Reopened"} issue #${issueNumber}.`,
+          url: data?.html_url,
+        });
+      }
+
+      case "github.pr.merge": {
+        const token = process.env.GITHUB_TOKEN;
+        if (!token) return jsonError("GITHUB_TOKEN is not configured.", 409);
+
+        const repo = validRepo(body.repo);
+        const pullNumber = Number(body.pullNumber);
+        if (!Number.isInteger(pullNumber) || pullNumber < 1) {
+          return jsonError("Pull request number is invalid.");
+        }
+
+        const method = String(body.method || "squash");
+        if (!["merge", "squash", "rebase"].includes(method)) {
+          return jsonError("Merge method is invalid.");
+        }
+
+        const data = await providerRequest(
+          `https://api.github.com/repos/${repo}/pulls/${pullNumber}/merge`,
+          {
+            method: "PUT",
+            headers: {
+              Accept: "application/vnd.github+json",
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              "User-Agent": "KERN-Command-Center",
+              "X-GitHub-Api-Version": "2022-11-28",
+            },
+            body: JSON.stringify({ merge_method: method }),
+          },
+        );
+
+        if (data?.merged === false) {
+          throw new Error(data?.message || "GitHub did not merge the pull request.");
+        }
+
+        await recordAuditEvent({
+          action: "github.pr.merge",
+          resource: `${repo}#${pullNumber}`,
+          metadata: { method, sha: data?.sha ?? null },
+        });
+
+        return NextResponse.json({
+          ok: true,
+          message: `Merged PR #${pullNumber} using ${method}.`,
+        });
+      }
+
+      case "github.workflow.rerun": {
+        const token = process.env.GITHUB_TOKEN;
+        if (!token) return jsonError("GITHUB_TOKEN is not configured.", 409);
+
+        const repo = validRepo(body.repo);
+        const runId = Number(body.runId);
+        if (!Number.isSafeInteger(runId) || runId < 1) {
+          return jsonError("Workflow run ID is invalid.");
+        }
+
+        await providerRequest(
+          `https://api.github.com/repos/${repo}/actions/runs/${runId}/rerun`,
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/vnd.github+json",
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              "User-Agent": "KERN-Command-Center",
+              "X-GitHub-Api-Version": "2022-11-28",
+            },
+          },
+        );
+
+        await recordAuditEvent({
+          action: "github.workflow.rerun",
+          resource: `${repo}:${runId}`,
+        });
+
+        return NextResponse.json({ ok: true, message: `Rerun queued for workflow run ${runId}.` });
+      }
+
+      case "vercel.rollback": {
+        const token = process.env.VERCEL_TOKEN;
+        const projectId = process.env.VERCEL_PROJECT_ID;
+        if (!token || !projectId) {
+          return jsonError("VERCEL_TOKEN and VERCEL_PROJECT_ID are required for rollback.", 409);
+        }
+
+        const deploymentId = compact(body.deploymentId, 180, "Deployment ID");
+        if (!/^[A-Za-z0-9_.-]+$/.test(deploymentId)) {
+          return jsonError("Invalid Vercel deployment ID.");
+        }
+
+        const params = new URLSearchParams();
+        if (process.env.VERCEL_TEAM_ID) params.set("teamId", process.env.VERCEL_TEAM_ID);
+        if (body.description) params.set("description", String(body.description).slice(0, 500));
+
+        await providerRequest(
+          `https://api.vercel.com/v1/projects/${encodeURIComponent(projectId)}/rollback/${encodeURIComponent(deploymentId)}${params.size ? `?${params.toString()}` : ""}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          },
+        );
+
+        await recordAuditEvent({
+          action: "vercel.rollback",
+          resource: deploymentId,
+          metadata: { projectId },
+        });
+
+        return NextResponse.json({ ok: true, message: "Vercel rollback requested." });
+      }
+
+      case "render.restart": {
+        const token = process.env.RENDER_API_KEY;
+        const serviceId = process.env.RENDER_SERVICE_ID;
+        if (!token || !serviceId) {
+          return jsonError("Render write credentials are not configured.", 409);
+        }
+
+        await providerRequest(
+          `https://api.render.com/v1/services/${encodeURIComponent(serviceId)}/restart`,
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        await recordAuditEvent({
+          action: "render.restart",
+          resource: serviceId,
+        });
+
+        return NextResponse.json({ ok: true, message: "Render service restart requested." });
+      }
+
       default:
         return jsonError("Unknown action.");
     }
   } catch (error) {
+    await recordAuditEvent({
+      action: String(body.type || "action.unknown"),
+      outcome: "failure",
+      metadata: { message: error instanceof Error ? error.message : "Action failed." },
+    });
     return jsonError(error instanceof Error ? error.message : "Action failed.", 502);
   }
 }
