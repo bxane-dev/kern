@@ -5,6 +5,7 @@ declare global {
     | "GITHUB_TOKEN"
     | "VERCEL_TOKEN"
     | "RENDER_API_KEY"
+    | "AI_GATEWAY_API_KEY"
     | "KERN_PASSWORD";
 
   type KernDesktopValue =
@@ -12,6 +13,7 @@ declare global {
     | "VERCEL_TEAM_ID"
     | "VERCEL_PROJECT_ID"
     | "RENDER_SERVICE_ID"
+    | "KERN_AI_MODEL"
     | "KERN_MONITORS";
 
   type KernUpdateState = {

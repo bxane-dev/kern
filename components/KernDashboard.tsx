@@ -36,6 +36,7 @@ import type { DashboardData, Deployment, GitHubItem, Monitor, Project, Todo } fr
 import { ActionCenter } from "@/components/ActionCenter";
 import { DesktopSettings } from "@/components/DesktopSettings";
 import { AlertsCenter } from "@/components/AlertsCenter";
+import { KernAI } from "@/components/KernAI";
 
 type Tab =
   | "overview"
@@ -47,6 +48,7 @@ type Tab =
   | "issues"
   | "tasks"
   | "alerts"
+  | "ai"
   | "actions"
   | "settings";
 
@@ -60,6 +62,7 @@ const nav = [
   { id: "issues", label: "Issues", icon: CircleDot },
   { id: "tasks", label: "Tasks", icon: ListTodo },
   { id: "alerts", label: "Alerts", icon: AlertTriangle },
+  { id: "ai", label: "KERN AI", icon: Command },
   { id: "actions", label: "Actions", icon: Zap },
   { id: "settings", label: "Settings", icon: Settings },
 ] as const;
@@ -471,7 +474,7 @@ export function KernDashboard() {
         </div>
         <nav>
           <span className="nav-section">WORKSPACE</span>
-          {nav.slice(0, 10).map((item) => {
+          {nav.slice(0, 11).map((item) => {
             const Icon = item.icon;
             return (
               <button key={item.id} className={active === item.id ? "active" : ""} onClick={() => setActive(item.id)}>
@@ -484,7 +487,7 @@ export function KernDashboard() {
             );
           })}
           <span className="nav-section lower">SYSTEM</span>
-          {nav.slice(10).map((item) => {
+          {nav.slice(11).map((item) => {
             const Icon = item.icon;
             return (
               <button key={item.id} className={active === item.id ? "active" : ""} onClick={() => setActive(item.id)}>
@@ -712,6 +715,16 @@ export function KernDashboard() {
             </>
           ) : null}
 
+          {active === "ai" && data ? (
+            <>
+              <div className="section-intro">
+                <div><p className="eyebrow">AI OPERATIONS</p><h2>KERN AI</h2></div>
+                <span>Read-only analysis of live KERN state</span>
+              </div>
+              <KernAI />
+            </>
+          ) : null}
+
           {active === "actions" && data ? (
             <>
               <div className="section-intro">
@@ -735,6 +748,7 @@ export function KernDashboard() {
                     { name: "Uptime", on: data.integrations.uptime, detail: "KERN_MONITORS" },
                     { name: "Database", on: data.integrations.database, detail: "SUPABASE_URL + SUPABASE_SECRET_KEY" },
                     { name: "Alerts", on: true, detail: "Live detection + optional Supabase history" },
+                    { name: "AI Gateway", on: data.integrations.ai, detail: data.integrations.ai ? "KERN AI configured" : "AI_GATEWAY_API_KEY / Vercel OIDC" },
                     { name: "Write actions", on: !data.writeActions.locked, detail: data.writeActions.locked ? "Set KERN_PASSWORD" : "Password protected" },
                   ].map((item) => (
                     <div key={item.name}>

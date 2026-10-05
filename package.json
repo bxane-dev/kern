@@ -1,6 +1,6 @@
 {
   "name": "kern",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "KERN Developer Command Center",
   "author": "bxane-dev",
@@ -29,7 +29,8 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "@supabase/supabase-js": "2.117.2",
-    "electron-updater": "6.8.9"
+    "electron-updater": "6.8.9",
+    "ai": "7.0.123"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

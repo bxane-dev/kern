@@ -117,6 +117,7 @@ export type DashboardData = {
     render: boolean;
     uptime: boolean;
     database: boolean;
+    ai: boolean;
   };
   writeActions: {
     locked: boolean;

@@ -44,6 +44,10 @@
 - Manual download + explicit restart/install flow
 - Windows code-signing hooks for Authenticode certificates
 - Release metadata for NSIS/AppImage/DEB updates
+- KERN AI read-only operations assistant
+- AI analysis of deployments, logs, uptime, incidents, issues, PRs, and alerts
+- Vercel AI Gateway integration with configurable model
+- Prompt-injection guardrails for untrusted logs/repository content
 
 ## Stack
 
@@ -57,6 +61,7 @@
 - GitHub REST API
 - Optional Vercel REST API
 - Optional Render REST API
+- Vercel AI SDK + AI Gateway
 
 ## Desktop installers
 
@@ -154,6 +159,21 @@ RENDER_SERVICE_ID=
 
 Both variables are required for Render deployment history and the deploy/restart controls.
 
+### KERN AI
+
+KERN includes a read-only AI operations analyst. The assistant receives a compact snapshot of the current KERN state—deployments, logs, monitors, alerts, incidents, issues, pull requests, and activity—and can explain failures or recommend the next manual action.
+
+Authentication uses Vercel AI Gateway:
+
+```env
+AI_GATEWAY_API_KEY=
+KERN_AI_MODEL=openai/gpt-5.6-luna
+```
+
+On Vercel, AI Gateway can also authenticate through Vercel OIDC, so a static gateway key is optional when OIDC is available. The installed desktop app supports a user-provided AI Gateway key stored with the same local secret-storage mechanism as other desktop credentials.
+
+KERN AI is deliberately read-only. It cannot execute deploys, rollbacks, restarts, merges, or other control-plane actions. Logs, issue titles, repository descriptions, and other provider data are explicitly treated as untrusted data rather than model instructions.
+
 ### Persistent storage
 
 KERN supports a dedicated Supabase/Postgres database for persistent operational data.
@@ -197,6 +217,7 @@ For an internet-facing deployment:
 2. Do not prefix provider secrets with `NEXT_PUBLIC_`.
 3. Use scoped provider tokens where possible.
 4. Rotate any token you accidentally commit or expose.
+5. Keep KERN AI read-only unless you add a separate approval layer for AI-triggered mutations.
 
 ## Commands
 

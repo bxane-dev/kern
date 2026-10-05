@@ -7,6 +7,7 @@ const secretFields: Array<{ key: KernDesktopSecret; label: string; placeholder: 
   { key: "GITHUB_TOKEN", label: "GitHub token", placeholder: "github_pat_…" },
   { key: "VERCEL_TOKEN", label: "Vercel token", placeholder: "Vercel access token" },
   { key: "RENDER_API_KEY", label: "Render API key", placeholder: "Render API key" },
+  { key: "AI_GATEWAY_API_KEY", label: "AI Gateway key", placeholder: "Vercel AI Gateway API key" },
   { key: "KERN_PASSWORD", label: "KERN password", placeholder: "Local dashboard password" },
 ];
 
@@ -15,6 +16,7 @@ const initialValues: Record<KernDesktopValue, string> = {
   VERCEL_TEAM_ID: "",
   VERCEL_PROJECT_ID: "",
   RENDER_SERVICE_ID: "",
+  KERN_AI_MODEL: "openai/gpt-5.6-luna",
   KERN_MONITORS: "",
 };
 
@@ -156,6 +158,10 @@ export function DesktopSettings() {
         <label>
           <span>Render service ID</span>
           <input value={values.RENDER_SERVICE_ID} onChange={(event) => setValues((current) => ({ ...current, RENDER_SERVICE_ID: event.target.value }))} placeholder="srv-…" />
+        </label>
+        <label>
+          <span>KERN AI model</span>
+          <input value={values.KERN_AI_MODEL} onChange={(event) => setValues((current) => ({ ...current, KERN_AI_MODEL: event.target.value }))} placeholder="openai/gpt-5.6-luna" />
         </label>
       </div>
 

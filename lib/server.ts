@@ -329,6 +329,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       render: Boolean(process.env.RENDER_API_KEY && process.env.RENDER_SERVICE_ID),
       uptime: monitors.length > 0,
       database: persistenceConfigured(),
+      ai: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN),
     },
     writeActions: {
       locked: !Boolean(process.env.KERN_PASSWORD),
